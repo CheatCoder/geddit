@@ -683,3 +683,33 @@ func (o *OAuthSession) SubredditComments(subreddit string) ([]*Comment, error) {
 	helper.buildComments(comments)
 	return helper.comments, nil
 }
+
+//Subscribe to a subreddit eg /r/news
+func (o *OAuthSession) Subscribe(subreddit string) error {
+	//https://oauth.reddit.com/api/subscribe
+	form := url.Values{
+		"action":  {"sub"},
+		"sr_name": {subreddit},
+	}
+	var u interface{}
+	err := o.postBody("https://oauth.reddit.com/api/subscribe", form, u)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//Unsubscribe to a subreddit eg /r/news
+func (o *OAuthSession) Unsubscribe(subreddit string) error {
+	//https://oauth.reddit.com/api/subscribe
+	form := url.Values{
+		"action":  {"unsub"},
+		"sr_name": {subreddit},
+	}
+	var u interface{}
+	err := o.postBody("https://oauth.reddit.com/api/subscribe", form, u)
+	if err != nil {
+		return err
+	}
+	return nil
+}
