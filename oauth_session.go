@@ -187,6 +187,35 @@ func (o *OAuthSession) getBody(link string, d interface{}) error {
 	return nil
 }
 
+func (o *OAuthSession) Autocompelete(search string, nsfw, profiles bool) ([]string, error) {
+	form := url.Values{
+		"query":            {search},
+		"include_over_18":  {strconv.FormatBool(nsfw)},
+		"include_profiles": {strconv.FormatBool(profiles)},
+	}
+
+	url := fmt.Sprintf("https://oauth.reddit.com/api/subreddit_autocomplete_v2.json?%s", form.Encode())
+	type resp struct {
+		Data struct {
+			Children []struct {
+				Data *Subreddit
+			}
+		}
+	}
+
+	r := &resp{}
+	err := o.getBody(url, r)
+	if err != nil {
+		return nil, err
+	}
+	tmp := make([]string, len(r.Data.Children))
+	for i, v := range r.Data.Children {
+		tmp[i] = v.Data.Name
+	}
+
+	return tmp, nil
+}
+
 func (o *OAuthSession) Me() (*Redditor, error) {
 	r := &Redditor{}
 	err := o.getBody("https://oauth.reddit.com/api/v1/me", r)
