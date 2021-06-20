@@ -77,12 +77,16 @@ func NewOAuthSession(clientID, clientSecret, useragent, redirectURL string) (*OA
 // Throttle sets the interval of each HTTP request.
 // Disable by setting interval to 0. Disabled by default.
 // Throttling is applied to invidual OAuthSession types.
-func (o *OAuthSession) Throttle(interval time.Duration) {
+func (o *OAuthSession) Throttle(limit int, interval time.Duration) {
 	if interval == 0 {
 		o.throttle = nil
 		return
 	}
-	o.throttle = rate.New(1, interval)
+	if limit > 0 {
+		o.throttle = rate.New(limit, interval)
+	} else {
+		o.throttle = rate.New(1, interval)
+	}
 }
 
 // LoginAuth creates the required HTTP client with a new token.
@@ -662,7 +666,14 @@ func (o *OAuthSession) MySavedComments(params ListingOptions) ([]*Comment, error
 
 // MySubreddits fetchs subreddits the current user subscribes to.
 // TODO support other endpoints https://www.reddit.com/dev/api/#GET_subreddits_mine_{where}
-func (o *OAuthSession) MySubreddits() ([]*Subreddit, error) {
+func (o *OAuthSession) MySubreddits(limit int) ([]*Subreddit, error) {
+	if limit > 100 && limit < 0 {
+		return nil, errors.New("wrong limit is set")
+	}
+	form := url.Values{
+		"limit": {strconv.Itoa(limit)},
+	}
+
 	type Response struct {
 		Data struct {
 			Children []struct {
@@ -671,7 +682,8 @@ func (o *OAuthSession) MySubreddits() ([]*Subreddit, error) {
 		}
 	}
 	r := new(Response)
-	err := o.getBody("https://oauth.reddit.com/subreddits/mine/subscriber", r)
+	url := fmt.Sprintf("https://oauth.reddit.com/subreddits/mine/subscriber?%s", form.Encode())
+	err := o.getBody(url, r)
 	if err != nil {
 		return nil, err
 	}
